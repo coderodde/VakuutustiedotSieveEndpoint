@@ -93,7 +93,7 @@ public final class DeviceEndpoint {
      * @param jsonObject the JSON object describing the new device.
      */
     private void handleCreateMessage(JsonObject jsonObject) {
-        int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
+        int deviceId = deviceCounter++;
         String deviceName = jsonObject.getString(JsonDefinitions.DEVICE_NAME);
         String deviceDescription = 
                 jsonObject.getString(JsonDefinitions.DEVICE_DESCRIPTION);
@@ -103,48 +103,104 @@ public final class DeviceEndpoint {
         device.setId(deviceId);
         device.setName(deviceName);
         device.setDescription(deviceDescription);
-        device.setStatus(false); // Each new device is turned off.
+        device.setStatus(false); // Each new device is initially turned off.
         
         mapDeviceIdToDevice.put(device.getId(), device);
-        
-        // Notify all the connected clients:
-        for (Session session : sessions) {
-            try {
-                session.getBasicRemote().sendText(jsonObject.toString());
-            } catch (IOException ex) {
-                
-            }
-        }
+        String jsonMessage = getCreateDeviceMessageJson(device);
+        broadcastMessageToAllConnectedSessions(jsonMessage);
     }
     
+    /**
+     * Toggles the status of a device.
+     * 
+     * @param jsonObject the JSON object describing the device toggle action.
+     */
     private void handleToggleMessage(JsonObject jsonObject) {
         int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
         Device device = mapDeviceIdToDevice.get(deviceId);
-        device.setStatus(!device.getStatus());
-        String jsonMessage = getToggleMessageJson(device);
         
-        for (Session session : sessions) {
+        if (device == null) {
+            String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
+            broadcastMessageToAllConnectedSessions(errorMessageJson);
+        } else {
+            device.setStatus(!device.getStatus());
+            String jsonMessage = getToggleDeviceMessageJson(device);
+            broadcastMessageToAllConnectedSessions(jsonMessage);
+        }
+    }
+    
+    /**
+     * Deletes a device.
+     * 
+     * @param jsonObject the JSON object describing the device delete action.
+     */
+    private void handleDeleteMessage(JsonObject jsonObject) {
+        int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
+        Device device = mapDeviceIdToDevice.get(deviceId);
+        
+        if (device == null) {
+            String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
+            broadcastMessageToAllConnectedSessions(errorMessageJson);
+        } else {
+            mapDeviceIdToDevice.remove(deviceId);
+            String jsonMessage = getDeleteDeviceMessageJson(device);
+            broadcastMessageToAllConnectedSessions(jsonMessage);
+        }
+    }
+    
+    /**
+     * Composes the error message JSON that describes that a device with given
+     * ID does not exist.
+     * 
+     * @param missingDeviceId the ID of a missing device.
+     * @return JSON text describing the error.
+     */
+    private String composeMissingDeviceErrorJSON(int missingDeviceId) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("{\"success\":\"false\",");
+        stringBuilder.append("\"errorMessage\":\"");
+        stringBuilder.append("No device with ID ");
+        stringBuilder.append(missingDeviceId);
+        stringBuilder.append(".\"}");
+        return stringBuilder.toString();
+    }
+    
+    /**
+     * Sends the input text message to all connected sessions.
+     * 
+     * @param message the message to send.
+     */
+    private void broadcastMessageToAllConnectedSessions(String message) {
+        for (Session session : sessions)  {
             try {
-                session.getBasicRemote().sendText(jsonMessage);
+                session.getBasicRemote().sendText(message);
             } catch (IOException ex) {
                 
             }
         }
     }
     
-    private void handleDeleteMessage(JsonObject jsonObject) {
-        int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
-        Device device = mapDeviceIdToDevice.get(deviceId);
-        mapDeviceIdToDevice.remove(deviceId);
-        String jsonMessage = getDeleteMessageJson(device);
-        
-        for (Session session : sessions) {
-            try {
-                session.getBasicRemote().sendText(jsonMessage);
-            } catch (IOException ex) {
-                
-            }
-        }
+    /**
+     * Composes the JSON message representing the event of adding a new device.
+     * 
+     * @param device the new device.
+     * @return the JSON message representing the action.
+     */
+    private String getCreateDeviceMessageJson(Device device) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("{\"action\":\"");
+        stringBuilder.append(JsonDefinitions.Actions.CREATE);
+        stringBuilder.append("\",");
+        stringBuilder.append("\"deviceId\":");
+        stringBuilder.append(device.getId());
+        stringBuilder.append(",\"deviceName\":\"");
+        stringBuilder.append(device.getName());
+        stringBuilder.append("\",deviceDescription\":\"");
+        stringBuilder.append(device.getDescription());
+        stringBuilder.append("\",\"deviceStatus\":");
+        stringBuilder.append(device.getStatus());
+        stringBuilder.append("}");
+        return stringBuilder.toString();
     }
     
     /**
@@ -153,7 +209,7 @@ public final class DeviceEndpoint {
      * @param device the target device.
      * @return the JSON message representing the action.
      */
-    private String getToggleMessageJson(Device device) {
+    private String getToggleDeviceMessageJson(Device device) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("{\"action\":\"");
         stringBuilder.append(JsonDefinitions.Actions.TOGGLE);
@@ -177,7 +233,7 @@ public final class DeviceEndpoint {
      * @param device the target device.
      * @return the JSON message representing the action.
      */
-    private String getDeleteMessageJson(Device device) {
+    private String getDeleteDeviceMessageJson(Device device) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("{\"action\":\"");
         stringBuilder.append(JsonDefinitions.Actions.DELETE);

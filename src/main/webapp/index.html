@@ -3,8 +3,105 @@
     <head>
         <title>Start Page</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <style>
+            .logEntry {
+                font-family: monospace;
+                font-weight: bold;
+            }
+        </style>
     </head>
     <body>
-        <h1>Hello World!</h1>
+        <div id="log"></div>
+        <script>
+            function onMessage(event) {
+                var log = document.getElementById("log");
+                var logEntryDiv = document.createElement("div");
+                logEntryDiv.innerHTML = event.data;
+                logEntryDiv.className = "logEntry";
+                log.appendChild(logEntryDiv);
+            }
+            
+            function onOpen(event) {
+                
+            }
+            
+            function onClose(event) {
+                
+            }
+            
+            function onError(event) {
+                
+            }
+            
+            var websocket = new WebSocket("ws://localhost:8080/DeviceEndpoint/devices");
+            websocket.onmessage = onMessage;
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onerror = onError;
+            
+            function addNewDevice() {
+                var inputFieldDeviceName        = document.getElementById("addNewDeviceFormDeviceNameInputField");
+                var inputFieldDeviceDescription = document.getElementById("addNewDeviceFormDeviceDescriptionInputField");
+                
+                var deviceName = inputFieldDeviceName.value;
+                var deviceDescription = inputFieldDeviceDescription.value;
+                
+                var endpointMessageObject = {};
+                endpointMessageObject["action"]            = "create";
+                endpointMessageObject["deviceName"]        = deviceName;
+                endpointMessageObject["deviceDescription"] = deviceDescription;
+                
+                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
+                websocket.send(endpointJSONMessage);
+            }
+            
+            function toggleDeviceStatus() {
+                var inputFieldDeviceId = document.getElementById("toggleDeviceStatusFormDeviceIdInputField");
+                var deviceIdString = inputFieldDeviceId.value;
+                var deviceId = parseInt(deviceIdString);
+                
+                var endpointMessageObject = {};
+                endpointMessageObject["action"]   = "toggle";
+                endpointMessageObject["deviceId"] = deviceId;
+                
+                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
+                websocket.send(endpointJSONMessage);
+            }
+            
+            function deleteDevice() {
+                var inputFieldDeviceId = document.getElementById("deleteDeviceFormDeviceIdInputField");
+                var deviceIdString = inputFieldDeviceId.value;
+                var deviceId = parseInt(deviceIdString);
+                
+                var endpointMessageObject = {};
+                endpointMessageObject["action"] = "delete";
+                endpointMessageObject["deviceId"] = deviceId;
+                
+                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
+                websocket.send(endpointJSONMessage);
+            }
+        </script>
+        <h3>Add new device</h3>
+        <form>
+            Device name:<br/>
+            <input type="text" id="addNewDeviceFormDeviceNameInputField"/><br/>
+            Device description:<br/>
+            <input type="text" id="addNewDeviceFormDeviceDescriptionInputField"/>
+        </form>
+        <button onclick="addNewDevice();">Add new device</button>
+        
+        <h3>Toggle device status</h3>
+        <form>
+            Device ID:<br/>
+            <input type="text" id="toggleDeviceStatusFormDeviceIdInputField"/>
+        </form>
+        <button onclick="toggleDeviceStatus();">Toggle device status</button>
+        
+        <h3>Delete device</h3>
+        <form>
+            Device ID:<br/>
+            <input type="text" id="deleteDeviceFormDeviceIdInputField"/>
+        </form>
+        <button onclick="deleteDevice();">Delete device</button>
     </body>
 </html>

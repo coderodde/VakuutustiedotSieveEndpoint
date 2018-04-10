@@ -26,6 +26,7 @@ public final class DeviceEndpoint {
     
     private static final class JsonDefinitions {
         private static final String ACTION = "action";
+        private static final String SUCCEEDED = "succeeded";
         private static final String DEVICE_ID = "deviceId";
         private static final String DEVICE_NAME = "deviceName";
         private static final String DEVICE_DESCRIPTION = "deviceDescription";
@@ -186,22 +187,112 @@ public final class DeviceEndpoint {
      * @param device the new device.
      * @return the JSON message representing the action.
      */
-    private String getCreateDeviceMessageJson(Device device) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"action\":\"");
-        stringBuilder.append(JsonDefinitions.Actions.CREATE);
-        stringBuilder.append("\",");
-        stringBuilder.append("\"deviceId\":");
-        stringBuilder.append(device.getId());
-        stringBuilder.append(",\"deviceName\":\"");
-        stringBuilder.append(device.getName());
-        stringBuilder.append("\",deviceDescription\":\"");
-        stringBuilder.append(device.getDescription());
-        stringBuilder.append("\",\"deviceStatus\":");
-        stringBuilder.append(device.getStatus());
-        stringBuilder.append("}");
-        return stringBuilder.toString();
+    String getCreateDeviceMessageJson(Device device) {
+          return String.format(CREATE_DEVICE_SUCCESS_MESSAGE_FORMAT,
+                               JsonDefinitions.SUCCEEDED,
+                               JsonDefinitions.ACTION,
+                               JsonDefinitions.Actions.CREATE,
+                               JsonDefinitions.DEVICE_ID,
+                               device.getId(),
+                               JsonDefinitions.DEVICE_NAME,
+                               device.getName(),
+                               JsonDefinitions.DEVICE_DESCRIPTION,
+                               device.getDescription(),
+                               JsonDefinitions.DEFICE_STATUS,
+                               device.getStatus());
     }
+    
+    String getToggleDeviceSuccessMessageJson(Device device) {
+        return String.format(TOGGLE_DEVICE_SUCCESS_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.TOGGLE,
+                             JsonDefinitions.DEVICE_ID,
+                             device.getId(),
+                             JsonDefinitions.DEFICE_STATUS,
+                             device.getStatus());
+    }
+    
+    String getToggleDeviceFailureMessageJson(Device device) {
+        return String.format(TOGGLE_DEVICE_FAILURE_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.TOGGLE,
+                             JsonDefinitions.DEVICE_ID,
+                             device.getId(),
+                             JsonDefinitions.DEFICE_STATUS,
+                             device.getStatus());
+    }
+    
+    String getDeleteDeviceSuccessMessageJson(Device device) {
+        return String.format(DELETE_DEVICE_SUCCESS_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.DELETE,
+                             JsonDefinitions.DEVICE_ID,
+                             device.getId());
+    }
+    
+    String getDeleteDeviceFailureMessageJson(Device device) {
+        return String.format(DELETE_DEVICE_FAILURE_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.DELETE,
+                             JsonDefinitions.DEVICE_ID,
+                             device.getId());
+    }
+    
+    /**
+     * This string specifies the format of the JSON message that is returned
+     * by the endpoint upon successful addition of a new device. Since adding a 
+     * new device always succeeds, there is no counterpart to this message 
+     * format that would report failure.
+     */
+    private static final String CREATE_DEVICE_SUCCESS_MESSAGE_FORMAT = 
+            "{\"%s\":true,"  +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%d,"     +
+            "\"%s\":\"%s\"," +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%b}";
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon successful toggling of a device.
+     */
+    private static final String TOGGLE_DEVICE_SUCCESS_MESSAGE_FORMAT = 
+            "{\"%s\":true,"  +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%d,"     +
+            "\"%s\":%b}";
+    
+    /**
+     * This string specifies the format of the JSON message that is returned
+     * by the endpoint upon unsuccessful toggling of a device.
+     */
+    private static final String TOGGLE_DEVICE_FAILURE_MESSAGE_FORMAT = 
+            "{\"%s\":false," +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%d,"     +
+            "\"%s\":%b}";
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon successful deletion of a device.
+     */
+    private static final String DELETE_DEVICE_SUCCESS_MESSAGE_FORMAT =
+            "{\"%s\":true,"  +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%d}";
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon unsuccessful deletion of a device.
+     */
+    private static final String DELETE_DEVICE_FAILURE_MESSAGE_FORMAT = 
+            "{\"%s\":false,"  +
+            "\"%s\":\"%s\"," +
+            "\"%s\":%d}";
     
     /**
      * Composes the JSON message representing device status change action.
@@ -211,7 +302,9 @@ public final class DeviceEndpoint {
      */
     private String getToggleDeviceMessageJson(Device device) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"action\":\"");
+        stringBuilder.append("{\"");
+        stringBuilder.append(JsonDefinitions.SUCCEEDED);
+        stringBuilder.append("\":true,\"action\":\"");
         stringBuilder.append(JsonDefinitions.Actions.TOGGLE);
         stringBuilder.append("\",");
         stringBuilder.append("\"");

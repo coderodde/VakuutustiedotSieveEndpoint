@@ -14,4 +14,17 @@ public class DeviceEndpointTest {
 //        System.out.println(new DeviceEndpoint().getToggleMessageJson(dev));
     }
     
+    @Test
+    public void testJson() {
+        Device device = new Device();
+        device.setId(19);
+        device.setName("Coffee machine");
+        device.setDescription(" Makes morning coffee  ");
+        device.setStatus(true);
+        System.out.println(new DeviceEndpoint().getCreateDeviceMessageJson(device));
+        System.out.println(new DeviceEndpoint().getToggleDeviceSuccessMessageJson(device));
+        System.out.println(new DeviceEndpoint().getToggleDeviceFailureMessageJson(device));
+        System.out.println(new DeviceEndpoint().getDeleteDeviceSuccessMessageJson(device));
+        System.out.println(new DeviceEndpoint().getDeleteDeviceFailureMessageJson(device));
+    }
 }

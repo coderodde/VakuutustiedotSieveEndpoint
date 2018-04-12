@@ -25,34 +25,34 @@ import javax.websocket.server.ServerEndpoint;
 public final class DeviceEndpoint {
     
     private static final class JsonDefinitions {
-        private static final String ACTION = "action";
-        private static final String SUCCEEDED = "succeeded";
-        private static final String DEVICE_ID = "deviceId";
-        private static final String DEVICE_NAME = "deviceName";
+        private static final String ACTION             = "action";
+        private static final String SUCCEEDED          = "succeeded";
+        private static final String DEVICE_ID          = "deviceId";
+        private static final String DEVICE_NAME        = "deviceName";
         private static final String DEVICE_DESCRIPTION = "deviceDescription";
-        private static final String DEFICE_STATUS = "deviceStatus";
+        private static final String DEFICE_STATUS      = "deviceStatus";
         
         private static final class Actions {
             private static final String CREATE = "create";
-            private static final String TOGGLE = "toggle";
+            private static final String UPDATE = "update";
             private static final String DELETE = "delete";
         }
     }
     
     // Used for creating IDs for the devices.
     private static int deviceCounter = 0;
-    private static final Set<Session> sessions = new HashSet<>();
-    private static final Map<Integer, Device> mapDeviceIdToDevice = 
+    private static final Set<Session> SESSIONS = new HashSet<>();
+    private static final Map<Integer, Device> MAP_DEVICE_ID_TO_DEVICE = 
             new HashMap<>();
     
     @OnOpen
     public void open(Session session) {
-        sessions.add(session);
+        SESSIONS.add(session);
     }
     
     @OnClose
     public void close(Session session) {
-        sessions.remove(session);
+        SESSIONS.remove(session);
     }
     
     @OnError
@@ -72,8 +72,8 @@ public final class DeviceEndpoint {
                     handleCreateMessage(jsonMessage);
                     break;
                     
-                case JsonDefinitions.Actions.TOGGLE:
-                    handleToggleMessage(jsonMessage);
+                case JsonDefinitions.Actions.UPDATE:
+                    handleUpdateMessage(jsonMessage);
                     break;
                     
                 case JsonDefinitions.Actions.DELETE:
@@ -98,27 +98,29 @@ public final class DeviceEndpoint {
         String deviceName = jsonObject.getString(JsonDefinitions.DEVICE_NAME);
         String deviceDescription = 
                 jsonObject.getString(JsonDefinitions.DEVICE_DESCRIPTION);
+        boolean deviceStatus = 
+                jsonObject.getBoolean(JsonDefinitions.DEFICE_STATUS);
         
         Device device = new Device();
         
         device.setId(deviceId);
         device.setName(deviceName);
         device.setDescription(deviceDescription);
-        device.setStatus(false); // Each new device is initially turned off.
+        device.setStatus(deviceStatus);
         
-        mapDeviceIdToDevice.put(device.getId(), device);
+        MAP_DEVICE_ID_TO_DEVICE.put(device.getId(), device);
         String jsonMessage = getCreateDeviceMessageJson(device);
         broadcastMessageToAllConnectedSessions(jsonMessage);
     }
     
     /**
-     * Toggles the status of a device.
+     * Handles the message for updating a device's information.
      * 
-     * @param jsonObject the JSON object describing the device toggle action.
+     * @param jsonObject the JSON object describing the device update action.
      */
-    private void handleToggleMessage(JsonObject jsonObject) {
+    private void handleUpdateMessage(JsonObject jsonObject) {
         int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
-        Device device = mapDeviceIdToDevice.get(deviceId);
+        Device device = MAP_DEVICE_ID_TO_DEVICE.get(deviceId);
         
         if (device == null) {
             String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
@@ -137,13 +139,13 @@ public final class DeviceEndpoint {
      */
     private void handleDeleteMessage(JsonObject jsonObject) {
         int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
-        Device device = mapDeviceIdToDevice.get(deviceId);
+        Device device = MAP_DEVICE_ID_TO_DEVICE.get(deviceId);
         
         if (device == null) {
             String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
             broadcastMessageToAllConnectedSessions(errorMessageJson);
         } else {
-            mapDeviceIdToDevice.remove(deviceId);
+            MAP_DEVICE_ID_TO_DEVICE.remove(deviceId);
             String jsonMessage = getDeleteDeviceMessageJson(device);
             broadcastMessageToAllConnectedSessions(jsonMessage);
         }
@@ -172,7 +174,7 @@ public final class DeviceEndpoint {
      * @param message the message to send.
      */
     private void broadcastMessageToAllConnectedSessions(String message) {
-        for (Session session : sessions)  {
+        for (Session session : SESSIONS)  {
             try {
                 session.getBasicRemote().sendText(message);
             } catch (IOException ex) {
@@ -206,7 +208,7 @@ public final class DeviceEndpoint {
         return String.format(TOGGLE_DEVICE_SUCCESS_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
                              JsonDefinitions.ACTION,
-                             JsonDefinitions.Actions.TOGGLE,
+                             JsonDefinitions.Actions.UPDATE,
                              JsonDefinitions.DEVICE_ID,
                              device.getId(),
                              JsonDefinitions.DEFICE_STATUS,
@@ -217,7 +219,7 @@ public final class DeviceEndpoint {
         return String.format(TOGGLE_DEVICE_FAILURE_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
                              JsonDefinitions.ACTION,
-                             JsonDefinitions.Actions.TOGGLE,
+                             JsonDefinitions.Actions.UPDATE,
                              JsonDefinitions.DEVICE_ID,
                              device.getId(),
                              JsonDefinitions.DEFICE_STATUS,
@@ -305,7 +307,7 @@ public final class DeviceEndpoint {
         stringBuilder.append("{\"");
         stringBuilder.append(JsonDefinitions.SUCCEEDED);
         stringBuilder.append("\":true,\"action\":\"");
-        stringBuilder.append(JsonDefinitions.Actions.TOGGLE);
+        stringBuilder.append(JsonDefinitions.Actions.UPDATE);
         stringBuilder.append("\",");
         stringBuilder.append("\"");
         stringBuilder.append(JsonDefinitions.DEVICE_ID);

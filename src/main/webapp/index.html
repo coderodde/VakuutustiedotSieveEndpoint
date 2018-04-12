@@ -8,17 +8,38 @@
                 font-family: monospace;
                 font-weight: bold;
             }
+            
+            .deviceListEntry {
+                margin-top: 1px;
+                border: 1px solid black;
+            }
+            
+            .buttonHolderRow {
+                text-align: center;
+            }
         </style>
     </head>
     <body>
-        <div id="log"></div>
         <script>
+            // WebSocket event listeners:
             function onMessage(event) {
-                var log = document.getElementById("log");
-                var logEntryDiv = document.createElement("div");
-                logEntryDiv.innerHTML = event.data;
-                logEntryDiv.className = "logEntry";
-                log.appendChild(logEntryDiv);
+                var messageText = event.data;
+                var messageObject = JSON.parse(messageText);
+                var action = messageObject["action"];
+                
+                switch (action) {
+                    case "create":
+                        handleCreateMessage(messageObject);
+                        break;
+                        
+                    case "update":
+                        handleUpdateMessage(messageObject);
+                        break;
+                        
+                    case "delete":
+                        handleDeleteMessage(messageObject);
+                        break;
+                }
             }
             
             function onOpen(event) {
@@ -33,6 +54,112 @@
                 
             }
             
+            // Message processing functions:
+            function handleCreateMessage(messageObject) {
+                // Get the device list <div>:
+                var deviceListDiv = document.getElementById("deviceList");
+                
+                // Get the new device entry:
+                var deviceEntry = createDeviceEntry(messageObject);
+                
+                // Add the device entry to the device list:
+                deviceListDiv.appendChild(deviceEntry);
+            }
+            
+            function updateDeviceInformation() {
+                alert("fds");
+            }
+            
+            function removeDevice(deviceId) {
+                alert("Removing device with ID " + deviceId + "!");
+            }
+            
+            // Miscellaneous functions:
+            function createDeviceEntry(messageObject) {
+                // Obtain the new device information:
+                var deviceName        = messageObject["deviceName"];
+                var deviceDescription = messageObject["deviceDescription"];
+                var deviceStatus      = messageObject["deviceStatus"];
+                
+                // Create all the elements required for representing the device entry:
+                var deviceEntryDiv                                         = document.createElement("div");
+                var deviceEntryTable                                       = document.createElement("table");
+                var deviceEntryNameRow                                     = document.createElement("tr");
+                var deviceEntryDescriptionRow                              = document.createElement("tr");
+                var deviceEntryStatusRow                                   = document.createElement("tr");
+                var deviceRemoveButtonRow                                  = document.createElement("tr");
+                var deviceEntryNameRowAttributeName                        = document.createElement("td");
+                var deviceEntryNameRowAttributeValue                       = document.createElement("td");
+                var deviceEntryDescriptionRowAttributeName                 = document.createElement("td");
+                var deviceEntryDescriptionRowAttributeValue                = document.createElement("td");
+                var deviceEntryStatusRowAttributeName                      = document.createElement("td");
+                var deviceEntryStatusRowAttributeValue                     = document.createElement("td");
+                var deviceRemoveButtonRowCell                              = document.createElement("td");
+                var deviceEntryNameRowAttributeValueForm                   = document.createElement("form");
+                var deviceEntryDescriptionRowAttributeValueForm            = document.createElement("form");
+                var deviceEntryStatusRowAttributeValueForm                 = document.createElement("form");
+                var deviceEntryNameRowAttributeValueFormInputField         = document.createElement("input");
+                var deviceEntryDescriptionRowAttributeValueFormInputField  = document.createElement("input");
+                var deviceEntryStatusRowAttributeValueFormInputField       = document.createElement("input");
+                var removeDeviceButton                                     = document.createElement("button");
+                
+                // Build the entry <div>:
+                deviceEntryDiv                             .appendChild(deviceEntryTable);
+                deviceEntryTable                           .appendChild(deviceEntryNameRow);
+                deviceEntryTable                           .appendChild(deviceEntryDescriptionRow);
+                deviceEntryTable                           .appendChild(deviceEntryStatusRow);
+                deviceEntryTable                           .appendChild(deviceRemoveButtonRow);
+                deviceRemoveButtonRow                      .appendChild(deviceRemoveButtonRowCell);
+                deviceEntryNameRow                         .appendChild(deviceEntryNameRowAttributeName);
+                deviceEntryNameRow                         .appendChild(deviceEntryNameRowAttributeValue);
+                deviceEntryDescriptionRow                  .appendChild(deviceEntryDescriptionRowAttributeName);
+                deviceEntryDescriptionRow                  .appendChild(deviceEntryDescriptionRowAttributeValue);
+                deviceEntryStatusRow                       .appendChild(deviceEntryStatusRowAttributeName);
+                deviceEntryStatusRow                       .appendChild(deviceEntryStatusRowAttributeValue);
+                deviceEntryNameRowAttributeValue           .appendChild(deviceEntryNameRowAttributeValueForm);
+                deviceEntryDescriptionRowAttributeValue    .appendChild(deviceEntryDescriptionRowAttributeValueForm);
+                deviceEntryStatusRowAttributeValue         .appendChild(deviceEntryStatusRowAttributeValueForm);
+                deviceEntryNameRowAttributeValueForm       .appendChild(deviceEntryNameRowAttributeValueFormInputField);
+                deviceEntryDescriptionRowAttributeValueForm.appendChild(deviceEntryDescriptionRowAttributeValueFormInputField);
+                deviceEntryStatusRowAttributeValueForm     .appendChild(deviceEntryStatusRowAttributeValueFormInputField);
+                
+                // The delete button row spans both the columns:
+                deviceRemoveButtonRowCell.setAttribute("colspan", 2);
+                deviceRemoveButtonRow.className = "buttonHolderRow";
+                deviceRemoveButtonRowCell.appendChild(removeDeviceButton);
+                removeDeviceButton.innerHTML = "Remove device!";
+                
+                // Set the attribute names:
+                deviceEntryNameRowAttributeName       .innerHTML = "Device name:";
+                deviceEntryDescriptionRowAttributeName.innerHTML = "Device description:";
+                deviceEntryStatusRowAttributeName     .innerHTML = "Device status:";
+                
+                // Set the input field types:
+                deviceEntryNameRowAttributeValueFormInputField.type        = "text";
+                deviceEntryDescriptionRowAttributeValueFormInputField.type = "text";
+                deviceEntryStatusRowAttributeValueFormInputField.type      = "checkbox";
+                
+                // Set the attribute values:
+                deviceEntryNameRowAttributeValueFormInputField.value        = deviceName;
+                deviceEntryDescriptionRowAttributeValueFormInputField.value = deviceDescription;
+                deviceEntryStatusRowAttributeValueFormInputField.checked    = deviceStatus;
+                
+                // Set the attribute value listeners:
+                deviceEntryNameRowAttributeValueFormInputField        .setAttribute("oninput", "updateDeviceInformation();");
+                deviceEntryDescriptionRowAttributeValueFormInputField .setAttribute("oninput", "updateDeviceInformation();");
+                deviceEntryStatusRowAttributeValueFormInputField      .setAttribute("oninput", "updateDeviceInformation();");
+//                deviceEntryNameRowAttributeValueFormInputField.oninput        = "updateDeviceInformation();";
+//                deviceEntryDescriptionRowAttributeValueFormInputField.oninput = "updateDeviceInformation();";
+//                deviceEntryStatusRowAttributeValueFormInputField.oninput      = "updateDeviceInformation();";
+//                removeDeviceButton.onclick = removeDevice(1);
+                
+                // Set CSS for table:
+                deviceEntryTable.className = "deviceListEntry";
+                
+                return deviceEntryDiv;
+            }
+            
+            // Initialization of the WebSocket:
             var websocket = new WebSocket("ws://localhost:8080/DeviceEndpoint/devices");
             websocket.onmessage = onMessage;
             websocket.onopen = onOpen;
@@ -40,32 +167,42 @@
             websocket.onerror = onError;
             
             function addNewDevice() {
+                // Get the relevant input fields:
                 var inputFieldDeviceName        = document.getElementById("addNewDeviceFormDeviceNameInputField");
                 var inputFieldDeviceDescription = document.getElementById("addNewDeviceFormDeviceDescriptionInputField");
+                var inputFieldDeviceStatus      = document.getElementById("addNewDeviceFormDeviceStatusInputField");
                 
-                var deviceName = inputFieldDeviceName.value;
+                // Extract the actual information:
+                var deviceName        = inputFieldDeviceName.value;
                 var deviceDescription = inputFieldDeviceDescription.value;
+                var deviceStatus      = inputFieldDeviceStatus.checked;
                 
+                // Create a message object going to the endpoint:
                 var endpointMessageObject = {};
                 endpointMessageObject["action"]            = "create";
                 endpointMessageObject["deviceName"]        = deviceName;
                 endpointMessageObject["deviceDescription"] = deviceDescription;
+                endpointMessageObject["deviceStatus"]      = deviceStatus;
                 
-                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
-                websocket.send(endpointJSONMessage);
+                // Convert the message object to JSON:
+                var messageJson = JSON.stringify(endpointMessageObject);
+                
+                // Send the message to the endpoint:
+                websocket.send(messageJson);
             }
             
-            function toggleDeviceStatus() {
-                var inputFieldDeviceId = document.getElementById("toggleDeviceStatusFormDeviceIdInputField");
-                var deviceIdString = inputFieldDeviceId.value;
-                var deviceId = parseInt(deviceIdString);
-                
-                var endpointMessageObject = {};
-                endpointMessageObject["action"]   = "toggle";
-                endpointMessageObject["deviceId"] = deviceId;
-                
-                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
-                websocket.send(endpointJSONMessage);
+            function updateDeviceInfo() {
+//                var inputFieldDeviceId = document.getElementById("toggleDeviceStatusFormDeviceIdInputField");
+//                var inputField
+//                var deviceIdString = inputFieldDeviceId.value;
+//                var deviceId = parseInt(deviceIdString);
+//                
+//                var endpointMessageObject = {};
+//                endpointMessageObject["action"]   = "toggle";
+//                endpointMessageObject["deviceId"] = deviceId;
+//                
+//                var endpointJSONMessage = JSON.stringify(endpointMessageObject);
+//                websocket.send(endpointJSONMessage);
             }
             
             function deleteDevice() {
@@ -81,27 +218,19 @@
                 websocket.send(endpointJSONMessage);
             }
         </script>
-        <h3>Add new device</h3>
+        <h1>Device list</h1>
+        <hr/>
+        <div id="deviceList"></div>
+        <hr/>
+        <h2>Add new device</h2>
         <form>
             Device name:<br/>
             <input type="text" id="addNewDeviceFormDeviceNameInputField"/><br/>
             Device description:<br/>
-            <input type="text" id="addNewDeviceFormDeviceDescriptionInputField"/>
+            <input type="text" id="addNewDeviceFormDeviceDescriptionInputField"/><br/>
+            Device status:<br/>
+            <input type="checkbox" id="addNewDeviceFormDeviceStatusInputField"/><br/>
         </form>
         <button onclick="addNewDevice();">Add new device</button>
-        
-        <h3>Toggle device status</h3>
-        <form>
-            Device ID:<br/>
-            <input type="text" id="toggleDeviceStatusFormDeviceIdInputField"/>
-        </form>
-        <button onclick="toggleDeviceStatus();">Toggle device status</button>
-        
-        <h3>Delete device</h3>
-        <form>
-            Device ID:<br/>
-            <input type="text" id="deleteDeviceFormDeviceIdInputField"/>
-        </form>
-        <button onclick="deleteDevice();">Delete device</button>
     </body>
 </html>

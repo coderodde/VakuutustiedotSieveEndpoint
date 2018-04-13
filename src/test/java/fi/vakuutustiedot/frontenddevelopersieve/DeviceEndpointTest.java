@@ -24,7 +24,7 @@ public class DeviceEndpointTest {
         System.out.println(new DeviceEndpoint().getCreateDeviceMessageJson(device));
         System.out.println(new DeviceEndpoint().getToggleDeviceSuccessMessageJson(device));
         System.out.println(new DeviceEndpoint().getToggleDeviceFailureMessageJson(device));
-        System.out.println(new DeviceEndpoint().getDeleteDeviceSuccessMessageJson(device));
-        System.out.println(new DeviceEndpoint().getDeleteDeviceFailureMessageJson(device));
+        System.out.println(new DeviceEndpoint().getRemoveDeviceSuccessMessageJson(device));
+        System.out.println(new DeviceEndpoint().getRemoveDeviceFailureMessageJson(device));
     }
 }

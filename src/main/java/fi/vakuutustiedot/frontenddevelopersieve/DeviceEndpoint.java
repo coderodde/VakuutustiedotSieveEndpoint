@@ -17,6 +17,7 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 /**
+ * This endpoint maintains a list of devices.
  * 
  * @author Rodion "rodde" Efremov
  * @version 1.6 (Apr 9, 2018)
@@ -31,13 +32,62 @@ public final class DeviceEndpoint {
         private static final String DEVICE_NAME        = "deviceName";
         private static final String DEVICE_DESCRIPTION = "deviceDescription";
         private static final String DEFICE_STATUS      = "deviceStatus";
+        private static final String MESSAGE            = "message";
         
         private static final class Actions {
             private static final String CREATE = "create";
             private static final String UPDATE = "update";
-            private static final String DELETE = "delete";
+            private static final String REMOVE = "remove";
         }
     }
+    
+    /**
+     * This string specifies the format of the JSON message that is returned
+     * by the endpoint upon addition of a new device.
+     */
+    private static final String CREATE_DEVICE_MESSAGE_FORMAT = 
+            "{\"%s\":%b,"    + // success
+            "\"%s\":\"%s\"," + // message
+            "\"%s\":\"%s\"," + // action
+            "\"%s\":%d,"     + // device ID
+            "\"%s\":\"%s\"," + // device name
+            "\"%s\":\"%s\"," + // device description
+            "\"%s\":%b}";      // device status
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon successful updating of a device's information.
+     */
+    private static final String 
+            UPDATE_DEVICE_SUCCESS_INFORMATION_MESSAGE_FORMAT = 
+            "{\"%s\":true,"  + // success
+            "\"%s\":\"%s\"," + // message
+            "\"%s\":\"%s\"," + // action
+            "\"%s\":%d,"     + // device ID
+            "\"%s\":\"%S\"," + // device name
+            "\"%s\":\"%s\"," + // device description
+            "\"%s\":%b}";      // device status
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon unsuccessful updating of a device's information.
+     */
+    private static final String
+            UPDATE_DEVICE_FAILURE_INFORMATION_MESSAGE_FORMAT = 
+            "{\"%s\":false," + // succcess
+            "\"%s\":\"%s\"," + // message
+            "\"%s\":\"%s\"," + // action
+            "\"%s\":%d}";      // device ID
+    
+    /**
+     * This string specifies the format of the JSON message that is returned by
+     * the endpoint upon removal action.
+     */
+    private static final String REMOVE_DEVICE_MESSAGE_FORMAT = 
+            "{\"%s\":%b,"    + // success
+            "\"%s\":\"%s\"," + // message
+            "\"%s\":\"%s\"," + // action
+            "\"%s\":%d}";      // device ID
     
     // Used for creating IDs for the devices.
     private static int deviceCounter = 0;
@@ -69,15 +119,15 @@ public final class DeviceEndpoint {
             
             switch (actionName) {
                 case JsonDefinitions.Actions.CREATE:
-                    handleCreateMessage(jsonMessage);
+                    handleCreateDeviceMessage(jsonMessage);
                     break;
                     
                 case JsonDefinitions.Actions.UPDATE:
-                    handleUpdateMessage(jsonMessage);
+                    handleUpdateDeviceMessage(jsonMessage);
                     break;
                     
-                case JsonDefinitions.Actions.DELETE:
-                    handleDeleteMessage(jsonMessage);
+                case JsonDefinitions.Actions.REMOVE:
+                    handleRemoveDeviceMessage(jsonMessage);
                     break;
                     
                 default:
@@ -93,7 +143,7 @@ public final class DeviceEndpoint {
      * 
      * @param jsonObject the JSON object describing the new device.
      */
-    private void handleCreateMessage(JsonObject jsonObject) {
+    private void handleCreateDeviceMessage(JsonObject jsonObject) {
         int deviceId = deviceCounter++;
         String deviceName = jsonObject.getString(JsonDefinitions.DEVICE_NAME);
         String deviceDescription = 
@@ -118,16 +168,31 @@ public final class DeviceEndpoint {
      * 
      * @param jsonObject the JSON object describing the device update action.
      */
-    private void handleUpdateMessage(JsonObject jsonObject) {
+    private void handleUpdateDeviceMessage(JsonObject jsonObject) {
         int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
         Device device = MAP_DEVICE_ID_TO_DEVICE.get(deviceId);
         
         if (device == null) {
-            String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
+            String errorMessageJson = 
+                    getUpdateDeviceInformationFailureMessageJson(deviceId);
             broadcastMessageToAllConnectedSessions(errorMessageJson);
         } else {
-            device.setStatus(!device.getStatus());
-            String jsonMessage = getToggleDeviceMessageJson(device);
+            String deviceName = 
+                    jsonObject.getString(JsonDefinitions.DEVICE_NAME);
+            
+            String deviceDescription = 
+                    jsonObject.getString(JsonDefinitions.DEVICE_DESCRIPTION);
+            
+            boolean deviceStatus = 
+                    jsonObject.getBoolean(JsonDefinitions.DEFICE_STATUS);
+            
+            // Update the device data:
+            device.setName(deviceName);
+            device.setDescription(deviceDescription);
+            device.setStatus(deviceStatus);
+           
+            String jsonMessage = 
+                    getUpdateDeviceInformationSuccessMessageJson(device);
             broadcastMessageToAllConnectedSessions(jsonMessage);
         }
     }
@@ -137,35 +202,19 @@ public final class DeviceEndpoint {
      * 
      * @param jsonObject the JSON object describing the device delete action.
      */
-    private void handleDeleteMessage(JsonObject jsonObject) {
+    private void handleRemoveDeviceMessage(JsonObject jsonObject) {
         int deviceId = jsonObject.getInt(JsonDefinitions.DEVICE_ID);
         Device device = MAP_DEVICE_ID_TO_DEVICE.get(deviceId);
         
         if (device == null) {
-            String errorMessageJson = composeMissingDeviceErrorJSON(deviceId);
+            String errorMessageJson = 
+                    getRemoveDeviceFailureMessageJson(deviceId);
             broadcastMessageToAllConnectedSessions(errorMessageJson);
         } else {
             MAP_DEVICE_ID_TO_DEVICE.remove(deviceId);
-            String jsonMessage = getDeleteDeviceMessageJson(device);
+            String jsonMessage = getRemoveDeviceSuccessMessageJson(device);
             broadcastMessageToAllConnectedSessions(jsonMessage);
         }
-    }
-    
-    /**
-     * Composes the error message JSON that describes that a device with given
-     * ID does not exist.
-     * 
-     * @param missingDeviceId the ID of a missing device.
-     * @return JSON text describing the error.
-     */
-    private String composeMissingDeviceErrorJSON(int missingDeviceId) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"success\":\"false\",");
-        stringBuilder.append("\"errorMessage\":\"");
-        stringBuilder.append("No device with ID ");
-        stringBuilder.append(missingDeviceId);
-        stringBuilder.append(".\"}");
-        return stringBuilder.toString();
     }
     
     /**
@@ -189,155 +238,94 @@ public final class DeviceEndpoint {
      * @param device the new device.
      * @return the JSON message representing the action.
      */
-    String getCreateDeviceMessageJson(Device device) {
-          return String.format(CREATE_DEVICE_SUCCESS_MESSAGE_FORMAT,
-                               JsonDefinitions.SUCCEEDED,
-                               JsonDefinitions.ACTION,
-                               JsonDefinitions.Actions.CREATE,
-                               JsonDefinitions.DEVICE_ID,
-                               device.getId(),
-                               JsonDefinitions.DEVICE_NAME,
-                               device.getName(),
-                               JsonDefinitions.DEVICE_DESCRIPTION,
-                               device.getDescription(),
-                               JsonDefinitions.DEFICE_STATUS,
-                               device.getStatus());
-    }
-    
-    String getToggleDeviceSuccessMessageJson(Device device) {
-        return String.format(TOGGLE_DEVICE_SUCCESS_MESSAGE_FORMAT,
+    private String getCreateDeviceMessageJson(Device device) {
+        return String.format(CREATE_DEVICE_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
+                             true,
+                             JsonDefinitions.MESSAGE,
+                             "A device is successfully added.",
                              JsonDefinitions.ACTION,
-                             JsonDefinitions.Actions.UPDATE,
+                             JsonDefinitions.Actions.CREATE,
                              JsonDefinitions.DEVICE_ID,
                              device.getId(),
+                             JsonDefinitions.DEVICE_NAME,
+                             device.getName(),
+                             JsonDefinitions.DEVICE_DESCRIPTION,
+                             device.getDescription(),
                              JsonDefinitions.DEFICE_STATUS,
                              device.getStatus());
     }
     
-    String getToggleDeviceFailureMessageJson(Device device) {
-        return String.format(TOGGLE_DEVICE_FAILURE_MESSAGE_FORMAT,
+    private String getRemoveDeviceSuccessMessageJson(Device device) {
+        String message = 
+                "Device \"" + device.getName() + "\" is successfully removed.";
+        
+        return String.format(REMOVE_DEVICE_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
+                             true,
+                             JsonDefinitions.MESSAGE,
+                             message,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.REMOVE,
+                             JsonDefinitions.DEVICE_ID, device.getId());
+    }
+    
+    private String getRemoveDeviceFailureMessageJson(int deviceId) {
+        return String.format(REMOVE_DEVICE_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             false,
+                             JsonDefinitions.MESSAGE,
+                             "No device with ID " + deviceId + ".",
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.REMOVE,
+                             JsonDefinitions.DEVICE_ID, deviceId);
+    }
+    
+    /**
+     * Returns the JSON string describing a successful update of a device's 
+     * information.
+     * 
+     * @param device the target device.
+     * @return the JSON text.
+     */
+    private String getUpdateDeviceInformationSuccessMessageJson(Device device) {
+        String message =
+                "Information of \"" + device.getName() + "\" is successfully " +
+                "updated.";
+        
+        return String.format(UPDATE_DEVICE_SUCCESS_INFORMATION_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.MESSAGE,
+                             message,
                              JsonDefinitions.ACTION,
                              JsonDefinitions.Actions.UPDATE,
                              JsonDefinitions.DEVICE_ID,
                              device.getId(),
+                             JsonDefinitions.DEVICE_NAME,
+                             device.getName(),
+                             JsonDefinitions.DEVICE_DESCRIPTION,
+                             device.getDescription(),
                              JsonDefinitions.DEFICE_STATUS,
                              device.getStatus());
     }
     
-    String getDeleteDeviceSuccessMessageJson(Device device) {
-        return String.format(DELETE_DEVICE_SUCCESS_MESSAGE_FORMAT,
-                             JsonDefinitions.SUCCEEDED,
-                             JsonDefinitions.ACTION,
-                             JsonDefinitions.Actions.DELETE,
-                             JsonDefinitions.DEVICE_ID,
-                             device.getId());
-    }
-    
-    String getDeleteDeviceFailureMessageJson(Device device) {
-        return String.format(DELETE_DEVICE_FAILURE_MESSAGE_FORMAT,
-                             JsonDefinitions.SUCCEEDED,
-                             JsonDefinitions.ACTION,
-                             JsonDefinitions.Actions.DELETE,
-                             JsonDefinitions.DEVICE_ID,
-                             device.getId());
-    }
-    
     /**
-     * This string specifies the format of the JSON message that is returned
-     * by the endpoint upon successful addition of a new device. Since adding a 
-     * new device always succeeds, there is no counterpart to this message 
-     * format that would report failure.
-     */
-    private static final String CREATE_DEVICE_SUCCESS_MESSAGE_FORMAT = 
-            "{\"%s\":true,"  +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%d,"     +
-            "\"%s\":\"%s\"," +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%b}";
-    
-    /**
-     * This string specifies the format of the JSON message that is returned by
-     * the endpoint upon successful toggling of a device.
-     */
-    private static final String TOGGLE_DEVICE_SUCCESS_MESSAGE_FORMAT = 
-            "{\"%s\":true,"  +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%d,"     +
-            "\"%s\":%b}";
-    
-    /**
-     * This string specifies the format of the JSON message that is returned
-     * by the endpoint upon unsuccessful toggling of a device.
-     */
-    private static final String TOGGLE_DEVICE_FAILURE_MESSAGE_FORMAT = 
-            "{\"%s\":false," +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%d,"     +
-            "\"%s\":%b}";
-    
-    /**
-     * This string specifies the format of the JSON message that is returned by
-     * the endpoint upon successful deletion of a device.
-     */
-    private static final String DELETE_DEVICE_SUCCESS_MESSAGE_FORMAT =
-            "{\"%s\":true,"  +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%d}";
-    
-    /**
-     * This string specifies the format of the JSON message that is returned by
-     * the endpoint upon unsuccessful deletion of a device.
-     */
-    private static final String DELETE_DEVICE_FAILURE_MESSAGE_FORMAT = 
-            "{\"%s\":false,"  +
-            "\"%s\":\"%s\"," +
-            "\"%s\":%d}";
-    
-    /**
-     * Composes the JSON message representing device status change action.
+     * Returns the JSON string describing an unsuccessful update of a device's
+     * information.
      * 
      * @param device the target device.
-     * @return the JSON message representing the action.
+     * @return the JSON text.
      */
-    private String getToggleDeviceMessageJson(Device device) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"");
-        stringBuilder.append(JsonDefinitions.SUCCEEDED);
-        stringBuilder.append("\":true,\"action\":\"");
-        stringBuilder.append(JsonDefinitions.Actions.UPDATE);
-        stringBuilder.append("\",");
-        stringBuilder.append("\"");
-        stringBuilder.append(JsonDefinitions.DEVICE_ID);
-        stringBuilder.append("\":");
-        stringBuilder.append(device.getId());
-        stringBuilder.append(",");
-        stringBuilder.append("\"");
-        stringBuilder.append(JsonDefinitions.DEFICE_STATUS);
-        stringBuilder.append("\":");
-        stringBuilder.append(device.getStatus());
-        stringBuilder.append('}');
-        return stringBuilder.toString();
-    }
-    
-    /**
-     * Composes the JSON message representing device delete action.
-     * 
-     * @param device the target device.
-     * @return the JSON message representing the action.
-     */
-    private String getDeleteDeviceMessageJson(Device device) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"action\":\"");
-        stringBuilder.append(JsonDefinitions.Actions.DELETE);
-        stringBuilder.append("\",");
-        stringBuilder.append("\"");
-        stringBuilder.append(JsonDefinitions.DEVICE_ID);
-        stringBuilder.append("\":");
-        stringBuilder.append(device.getId());
-        stringBuilder.append("}");
-        return stringBuilder.toString();
+    private String getUpdateDeviceInformationFailureMessageJson(int deviceId) {
+        String message = "There is no device with ID " + deviceId + ".";
+        
+        return String.format(UPDATE_DEVICE_FAILURE_INFORMATION_MESSAGE_FORMAT,
+                             JsonDefinitions.SUCCEEDED,
+                             JsonDefinitions.MESSAGE,
+                             message,
+                             JsonDefinitions.ACTION,
+                             JsonDefinitions.Actions.UPDATE,
+                             JsonDefinitions.DEVICE_ID,
+                             deviceId);
     }
 }

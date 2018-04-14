@@ -98,6 +98,16 @@ public final class DeviceEndpoint {
     @OnOpen
     public void open(Session session) {
         SESSIONS.add(session);
+        
+        // Send the new user all the current devices:
+        for (Device device : MAP_DEVICE_ID_TO_DEVICE.values()) {
+            try {
+                session.getBasicRemote()
+                       .sendText(getCreateDeviceMessageJson(device));
+            } catch (IOException ex) {
+                
+            }
+        }
     }
     
     @OnClose

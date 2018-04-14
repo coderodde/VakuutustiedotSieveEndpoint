@@ -18,11 +18,11 @@
                 font-weight: bold;
             }
             
-            span.messageInfo {
+            p.messageInfo {
                 color: green;
             }
             
-            span.messageError {
+            p.messageError {
                 color: red;
             }
         </style>
@@ -73,6 +73,38 @@
                 
                 // Add the device entry to the device list:
                 deviceListDiv.appendChild(deviceEntry);
+                
+                // Render the message from the endpoint:
+                publishMessageOnSuccess(messageObject["message"]);
+            }
+            
+            function handleUpdateDeviceMessage(messageObject) {
+                var success = messageObject["succeeded"];
+                
+                if (success) {
+                    // Get the actual updated data:
+                    var deviceId          = messageObject["deviceId"];
+                    var deviceName        = messageObject["deviceName"];
+                    var deviceDescription = messageObject["deviceDescription"];
+                    var deviceStatus      = messageObject["deviceStatus"];
+
+                    // Get the relevant input fields:
+                    var deviceNameField        = document.getElementById("deviceNameField"        + deviceId);
+                    var deviceDescriptionField = document.getElementById("deviceDescriptionField" + deviceId);
+                    var deviceStatusField      = document.getElementById("deviceStatusField"      + deviceId);
+
+                    // Update the values:
+                    deviceNameField.value        = deviceName;
+                    deviceDescriptionField.value = deviceDescription;
+                    deviceStatusField.value      = deviceStatus;   
+                    
+                    // Publish the message from the endpoint:
+                    publishMessageOnSuccess(messageObject["message"]);
+                } else {
+                    publishMessageOnFailure(messageObject["message"]);
+                }
+                
+                // Render the 
             }
             
             function handleRemoveDeviceMessage(messageObject) {
@@ -83,6 +115,9 @@
                     var deviceEntryDiv = document.getElementById("deviceEntry"  + deviceId);
                     var parentOfDeviceEntryDiv = deviceEntryDiv.parentNode;
                     parentOfDeviceEntryDiv.removeChild(deviceEntryDiv);
+                    publishMessageOnSuccess(messageObject["message"]);
+                } else {
+                    publishMessageOnFailure(messageObject["message"]);
                 }
             }
             
@@ -239,6 +274,26 @@
                 var endpointJSONMessage = JSON.stringify(endpointMessageObject);
                 websocket.send(endpointJSONMessage);
             }
+            
+            function publishMessage(messageText, isSuccessful) {
+                var messageAreaParagraph = document.getElementById("messageArea");
+                
+                if (isSuccessful) {
+                    messageAreaParagraph.className = "messageInfo";
+                } else {
+                    messageAreaParagraph.className = "messageError";
+                }
+                
+                messageAreaParagraph.innerHTML = messageText;
+            }
+            
+            function publishMessageOnSuccess(messageText) {
+                publishMessage(messageText, true);
+            }
+            
+            function publishMessageOnFailure(messageText) {
+                publishMessage(messageText, false);
+            }
         </script>
         <h1>Device list</h1>
         <hr/>
@@ -260,5 +315,11 @@
             <input type="checkbox" id="addNewDeviceFormDeviceStatusInputField"/><br/>
         </form>
         <button onclick="addNewDevice();">Add new device</button>
+        <h2>Remove device by ID</h2>
+        <form>
+            Device ID:<br/>
+            <input type="text" id="removeDeviceFormDeviceIdInputField"/><br/>
+        </form>
+        <button onclick="removeDevice();">Remove device</button>
     </body>
 </html>

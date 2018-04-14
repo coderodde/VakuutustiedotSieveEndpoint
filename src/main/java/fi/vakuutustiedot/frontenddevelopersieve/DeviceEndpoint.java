@@ -243,7 +243,9 @@ public final class DeviceEndpoint {
                              JsonDefinitions.SUCCEEDED,
                              true,
                              JsonDefinitions.MESSAGE,
-                             "A device is successfully added.",
+                             "A device \\\"" + 
+                                     device.getName() +
+                                     "\\\" is successfully added.",
                              JsonDefinitions.ACTION,
                              JsonDefinitions.Actions.CREATE,
                              JsonDefinitions.DEVICE_ID,
@@ -256,9 +258,18 @@ public final class DeviceEndpoint {
                              device.getStatus());
     }
     
+    /**
+     * Composes the JSON message representing the event of successfully removing
+     * a device from the list.
+     * 
+     * @param device the successfully removed device.
+     * @return the JSON message.
+     */
     private String getRemoveDeviceSuccessMessageJson(Device device) {
         String message = 
-                "Device \"" + device.getName() + "\" is successfully removed.";
+                "Device \\\"" + 
+                device.getName() + 
+                "\\\" is successfully removed.";
         
         return String.format(REMOVE_DEVICE_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
@@ -270,6 +281,13 @@ public final class DeviceEndpoint {
                              JsonDefinitions.DEVICE_ID, device.getId());
     }
     
+    /**
+     * Composes the JSON message representing the event of unsuccessfully 
+     * removing a device from the list.
+     * 
+     * @param deviceId the unsuccessfully removed device.
+     * @return the JSON message.
+     */
     private String getRemoveDeviceFailureMessageJson(int deviceId) {
         return String.format(REMOVE_DEVICE_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,
@@ -290,8 +308,9 @@ public final class DeviceEndpoint {
      */
     private String getUpdateDeviceInformationSuccessMessageJson(Device device) {
         String message =
-                "Information of \"" + device.getName() + "\" is successfully " +
-                "updated.";
+                "Information of the device \\\"" +
+                device.getName() +
+                "\\\" is successfully updated.";
         
         return String.format(UPDATE_DEVICE_SUCCESS_INFORMATION_MESSAGE_FORMAT,
                              JsonDefinitions.SUCCEEDED,

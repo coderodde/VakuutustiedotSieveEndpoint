@@ -34,7 +34,6 @@
                 var messageText = event.data;
                 var messageObject = JSON.parse(messageText);
                 var action = messageObject["action"];
-                console.log("Message: " + messageText);
                 
                 switch (action) {
                     case "create":
@@ -96,15 +95,13 @@
                     // Update the values:
                     deviceNameField.value        = deviceName;
                     deviceDescriptionField.value = deviceDescription;
-                    deviceStatusField.value      = deviceStatus;   
+                    deviceStatusField.checked    = deviceStatus;   
                     
                     // Publish the message from the endpoint:
                     publishMessageOnSuccess(messageObject["message"]);
                 } else {
                     publishMessageOnFailure(messageObject["message"]);
                 }
-                
-                // Render the 
             }
             
             function handleRemoveDeviceMessage(messageObject) {
@@ -201,10 +198,10 @@
                 deviceEntryDiv.setAttribute("id", "deviceEntry" + deviceId);
                 
                 // Set the attribute value listeners:
-                deviceEntryNameRowAttributeValueFormInputField        .setAttribute("oninput", "updateDeviceInformation(" + deviceId + ");");
-                deviceEntryDescriptionRowAttributeValueFormInputField .setAttribute("oninput", "updateDeviceInformation(" + deviceId + ");");
-                deviceEntryStatusRowAttributeValueFormInputField      .setAttribute("oninput", "updateDeviceInformation(" + deviceId + ");");
-                removeDeviceButton                                    .setAttribute("onclick", "removeDevice(" + deviceId + ");");
+                deviceEntryNameRowAttributeValueFormInputField        .setAttribute("oninput",  "updateDeviceInformation(" + deviceId + ");");
+                deviceEntryDescriptionRowAttributeValueFormInputField .setAttribute("oninput",  "updateDeviceInformation(" + deviceId + ");");
+                deviceEntryStatusRowAttributeValueFormInputField      .setAttribute("onchange", "updateDeviceInformation(" + deviceId + ");");
+                removeDeviceButton                                    .setAttribute("onclick",  "removeDevice(" + deviceId + ");");
                 
                 // Set CSS for table:
                 deviceEntryTable.className = "deviceListEntry";
@@ -294,6 +291,12 @@
             function publishMessageOnFailure(messageText) {
                 publishMessage(messageText, false);
             }
+            
+            function removeDeviceWithId() {
+                var deviceIdInputField = document.getElementById("removeDeviceFormDeviceIdInputField");
+                var deviceId = deviceIdInputField.value;
+                removeDevice(parseInt(deviceId));
+            }
         </script>
         <h1>Device list</h1>
         <hr/>
@@ -320,6 +323,6 @@
             Device ID:<br/>
             <input type="text" id="removeDeviceFormDeviceIdInputField"/><br/>
         </form>
-        <button onclick="removeDevice();">Remove device</button>
+        <button onclick="removeDeviceWithId();">Remove device</button>
     </body>
 </html>

@@ -64,7 +64,7 @@ public final class DeviceEndpoint {
             "\"%s\":\"%s\"," + // message
             "\"%s\":\"%s\"," + // action
             "\"%s\":%d,"     + // device ID
-            "\"%s\":\"%S\"," + // device name
+            "\"%s\":\"%s\"," + // device name
             "\"%s\":\"%s\"," + // device description
             "\"%s\":%b}";      // device status
     

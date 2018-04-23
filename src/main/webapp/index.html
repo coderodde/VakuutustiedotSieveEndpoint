@@ -51,7 +51,7 @@
             }
             
             function onOpen(event) {
-                
+                alert("connection open");
             }
             
             function onClose(event) {
@@ -59,7 +59,7 @@
             }
             
             function onError(event) {
-                
+                alert("error");
             }
             
             // Message processing functions:
@@ -209,9 +209,7 @@
                 return deviceEntryDiv;
             }
             
-            // Initialization of the WebSocket:
-            // TODO: Try wss
-            var websocket = new WebSocket("ws://localhost:8080/DeviceEndpoint/devices");
+            var websocket = new WebSocket("wss://device-endpoint.herokuapp.com:25667/devices");
             websocket.onmessage = onMessage;
             websocket.onopen = onOpen;
             websocket.onclose = onClose;

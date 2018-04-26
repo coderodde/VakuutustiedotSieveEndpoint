@@ -209,7 +209,8 @@
                 return deviceEntryDiv;
             }
             
-            var websocket = new WebSocket("wss://device-endpoint.herokuapp.com:25667/devices");
+            //var websocket = new WebSocket("wss://device-endpoint.herokuapp.com:25667/devices");
+            var websocket = new WebSocket("wss://device-endpoint.herokuapp.com/devices");
             websocket.onmessage = onMessage;
             websocket.onopen = onOpen;
             websocket.onclose = onClose;
@@ -235,7 +236,6 @@
                 
                 // Convert the message object to JSON:
                 var messageJson = JSON.stringify(endpointMessageObject);
-                
                 // Send the message to the endpoint:
                 websocket.send(messageJson);
             }
@@ -256,7 +256,6 @@
                 
                 // Convert the message object to JSON:
                 var messageJson = JSON.stringify(endpointMessageObject);
-                
                 // Send the message to the endpoint:
                 websocket.send(messageJson);
             }
@@ -267,6 +266,7 @@
                 endpointMessageObject["deviceId"] = deviceId;
                 
                 var endpointJSONMessage = JSON.stringify(endpointMessageObject);
+                console.log(endpointJSONMessage);
                 websocket.send(endpointJSONMessage);
             }
             

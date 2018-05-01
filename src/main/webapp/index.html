@@ -34,6 +34,7 @@
                 var messageText = event.data;
                 var messageObject = JSON.parse(messageText);
                 var action = messageObject["action"];
+                console.log("Endpoint responded with: " + messageText);
                 
                 switch (action) {
                     case "create":
@@ -48,18 +49,6 @@
                         handleRemoveDeviceMessage(messageObject);
                         break;
                 }
-            }
-            
-            function onOpen(event) {
-                alert("connection open");
-            }
-            
-            function onClose(event) {
-                
-            }
-            
-            function onError(event) {
-                alert("error");
             }
             
             // Message processing functions:
@@ -209,12 +198,30 @@
                 return deviceEntryDiv;
             }
             
-            //var websocket = new WebSocket("wss://device-endpoint.herokuapp.com:25667/devices");
+            // Set up the WebSocket:
             var websocket = new WebSocket("wss://device-endpoint.herokuapp.com/devices");
             websocket.onmessage = onMessage;
-            websocket.onopen = onOpen;
-            websocket.onclose = onClose;
-            websocket.onerror = onError;
+            websocket.onclose = reconnect;
+            
+            function reconnect() {
+                //websocket = new WebSocket("wss://device-endpoint.herokuapp.com/devices");
+                websocket = new WebSocket("ws://localhost:8080/de/devices");
+                console.log("reopening");
+                websocket.onclose = function() {
+                    setTimeout(reconnect, 0);
+                };
+            };
+            
+            // Set the page closed event listener:
+            window.onbeforeunload = function() {
+                var endpointMessageObject = {};
+                endpointMessageObject["action"] = "unload";
+                
+                var messageJson = JSON.stringify(endpointMessageObject);
+                
+                websocket.send(messageJson);
+                return null;
+            };
             
             function addNewDevice() {
                 // Get the relevant input fields:
@@ -236,6 +243,7 @@
                 
                 // Convert the message object to JSON:
                 var messageJson = JSON.stringify(endpointMessageObject);
+                console.log(messageJson);
                 // Send the message to the endpoint:
                 websocket.send(messageJson);
             }
@@ -256,6 +264,7 @@
                 
                 // Convert the message object to JSON:
                 var messageJson = JSON.stringify(endpointMessageObject);
+                console.log(messageJson);
                 // Send the message to the endpoint:
                 websocket.send(messageJson);
             }

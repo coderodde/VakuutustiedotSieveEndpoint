@@ -200,17 +200,8 @@
             
             // Set up the WebSocket:
             var websocket = new WebSocket("wss://device-endpoint.herokuapp.com/devices");
+            //var websocket = new WebSocket("ws://localhost:8084/dep/devices");
             websocket.onmessage = onMessage;
-            websocket.onclose = reconnect;
-            
-            function reconnect() {
-                //websocket = new WebSocket("wss://device-endpoint.herokuapp.com/devices");
-                websocket = new WebSocket("ws://localhost:8080/de/devices");
-                console.log("reopening");
-                websocket.onclose = function() {
-                    setTimeout(reconnect, 0);
-                };
-            };
             
             // Set the page closed event listener:
             window.onbeforeunload = function() {
